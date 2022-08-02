@@ -1,9 +1,8 @@
 module m3u8
 
 fn test_master_decode_reencode() ? {
-	playlist, playlist_type := decode(master_playlist_data, false) or { panic(err) }
+	playlist := decode(master_playlist_data, false) or { panic(err) }
 
-	assert playlist_type == .master
 	if playlist is MasterPlaylist {
 		assert playlist.version() == 3
 		assert playlist.variants.len == 5
@@ -37,11 +36,10 @@ chunklist-b1500000.m3u8
 '
 
 fn test_master_decode_with_codecs_and_alts() ? {
-	playlist, playlist_type := decode(master_playlist_with_codecs_and_alts_data, false) or {
+	playlist := decode(master_playlist_with_codecs_and_alts_data, false) or {
 		panic(err)
 	}
 
-	assert playlist_type == .master
 	if playlist is MasterPlaylist {
 		assert playlist.version() == 4
 		assert playlist.variants[0].video == 'low'
@@ -86,9 +84,8 @@ main/audio-only.m3u8
 '
 
 fn test_media_decode() ? {
-	playlist, playlist_type := decode(media_playlist_data, false) or { panic(err) }
+	playlist := decode(media_playlist_data, false) or { panic(err) }
 
-	assert playlist_type == .media
 	if playlist is MediaPlaylist {
 		assert playlist.version() == 7
 		assert playlist.target_duration == f64(5)
@@ -136,9 +133,8 @@ video_sdr_-7.mp4
 '
 
 fn test_complex_master_decode() ? {
-	playlist, playlist_type := decode(complex_media_playlist_data, false) or { panic(err) }
+	playlist := decode(complex_media_playlist_data, false) or { panic(err) }
 
-	assert playlist_type == .master
 	if playlist is MasterPlaylist {
 		assert playlist.version() == 7
 		assert playlist.independent_segments == true

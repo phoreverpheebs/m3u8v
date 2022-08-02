@@ -23,16 +23,16 @@ protocol versions:
 
 const regex_query = r'([a-zA-Z0-9_\-]+)=(("(?:[^"]|[^",])+")|([^,]+))'
 
-pub fn decode_from_file(path string, strict bool) ?(Playlist, PlaylistType) {
+pub fn decode_from_file(path string, strict bool) ?Playlist {
 	return decode(os.read_file(path)?, strict)
 }
 
-pub fn decode(data string, strict bool) ?(Playlist, PlaylistType) {
+pub fn decode(data string, strict bool) ?Playlist {
 	return decode_m3u8(&data, strict)
 }
 
 [direct_array_access]
-fn decode_m3u8(data &string, strict bool) ?(Playlist, PlaylistType) {
+fn decode_m3u8(data &string, strict bool) ?Playlist {
 	mut wv := Widevine{}
 
 	mut state := DecodeState{}
@@ -68,8 +68,8 @@ fn decode_m3u8(data &string, strict bool) ?(Playlist, PlaylistType) {
 
 	match state.list_type {
 		.@none { return error('m3u8: Unknown playlist type') }
-		.master { return master, PlaylistType.master }
-		.media { return media, PlaylistType.media }
+		.master { return master }
+		.media { return media }
 	}
 
 	return none
