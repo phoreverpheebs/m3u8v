@@ -42,8 +42,8 @@ fn main() {
 <h2>Plans</h2>
 
 - [ ] Add examples
-- [ ] Documentation
-- [ ] Custom Tags
+- [x] Documentation
+- [x] Custom Tags
 - [ ] Custom Decoder
 - [ ] Protocol version 8
 
