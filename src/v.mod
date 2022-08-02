@@ -1,7 +1,7 @@
 Module {
 	name: 'm3u8'
-	description: 'Support for m3u8 files in V'
-	version: '0.1.0'
+	description: 'm3u8 library in V'
+	version: '0.2.0'
 	license: 'MIT'
 	dependencies: []
 }

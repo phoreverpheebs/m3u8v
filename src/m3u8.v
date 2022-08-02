@@ -23,10 +23,14 @@ protocol versions:
 
 const regex_query = r'([a-zA-Z0-9_\-]+)=(("(?:[^"]|[^",])+")|([^,]+))'
 
+// `decode_from_file` reads data from `path` and returns a decoded playlist which is either a MediaPlaylist or MasterPlaylist
+// if `strict` is true, syntax errors are returned
 pub fn decode_from_file(path string, strict bool) ?Playlist {
 	return decode(os.read_file(path)?, strict)
 }
 
+// `decode` decodes `data` into either MediaPlaylist or MasterPlaylist
+// if `strict` is true, syntax errors are returned
 pub fn decode(data string, strict bool) ?Playlist {
 	return decode_m3u8(&data, strict)
 }
@@ -75,6 +79,8 @@ fn decode_m3u8(data &string, strict bool) ?Playlist {
 	return none
 }
 
+// `decode_attribute_list` decodes a list of attributes
+// e.g. TYPE=AUDIO,FRAME-RATE=0.56
 pub fn decode_attribute_list(list string) map[string]string {
 	return decode_params(list)
 }

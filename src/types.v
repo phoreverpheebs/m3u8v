@@ -4,12 +4,14 @@ import time
 
 const datetime = '2006-01-02T15:04:05.999999999Z07:00'
 
+// playlist types
 pub enum PlaylistType {
 	@none
 	master
 	media
 }
 
+// media playlist sub-types
 pub enum MediaType {
 	@none
 	event
@@ -24,17 +26,20 @@ pub fn (t MediaType) str() string {
 	}
 }
 
+// scte35 syntaxes
 pub enum SCTE35_Syntax {
 	scte_67_2014 // variable can't start with a number
 	oatcls
 }
 
+// scte35 cue types
 pub enum SCTE35_Cue_Type {
 	cue_start
 	cue_mid
 	cue_end
 }
 
+// defined types of alternatives in master playlist
 pub enum AlternativeType {
 	@none
 	audio
@@ -53,6 +58,7 @@ pub fn (t AlternativeType) str() string {
 	}
 }
 
+// defined key methods in EXT-X-KEY
 pub enum KeyMethod {
 	@none
 	aes_128
@@ -67,6 +73,7 @@ pub fn (m KeyMethod) str() string {
 	}
 }
 
+// playlist interface
 pub interface Playlist {
 	encode() string
 }
@@ -221,7 +228,8 @@ pub mut:
 	height i64
 }
 
-pub fn (r Resolution) as_str() string {
+// returns {w}x{h}
+pub fn (r Resolution) str() string {
 	return '${r.width}x$r.height'
 }
 

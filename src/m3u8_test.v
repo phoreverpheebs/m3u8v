@@ -2,6 +2,7 @@ module m3u8
 
 fn test_master_decode_reencode() ? {
 	playlist := decode(master_playlist_data, false) or { panic(err) }
+	surely_master := decode_master_playlist(master_playlist_data, false) or { panic(err) }
 
 	if playlist is MasterPlaylist {
 		assert playlist.version() == 3
@@ -18,6 +19,7 @@ fn test_master_decode_reencode() ? {
 		// reencode
 		encoded := playlist.encode()
 		assert encoded == master_playlist_data
+		assert playlist == surely_master
 	}
 }
 
@@ -85,6 +87,14 @@ main/audio-only.m3u8
 
 fn test_media_decode() ? {
 	playlist := decode(media_playlist_data, false) or { panic(err) }
+	surely_media := decode_media_playlist(media_playlist_data, 1024, false) or { panic(err) }
+
+	assert surely_media.version() == 7
+	assert surely_media.target_duration == f64(5)
+	assert surely_media.media_type == .vod
+	assert surely_media.map.uri == 'test_map.mp4'
+	assert surely_media.independent_segments == true
+	assert surely_media.segments[0].bitrate == 7766
 
 	if playlist is MediaPlaylist {
 		assert playlist.version() == 7
@@ -162,7 +172,7 @@ fn test_complex_master_decode() ? {
 		assert playlist.variants[7].codecs == 'avc1.64001f,mp4a.40.5'
 		assert playlist.variants[8].closed_captions == 'NONE'
 		assert playlist.variants[playlist.variants.len - 2].average_bandwidth == 5513479
-		assert playlist.variants[playlist.variants.len - 1].resolution.as_str() == '1916x908'
+		assert playlist.variants[playlist.variants.len - 1].resolution.str() == '1916x908'
 		assert playlist.session_key[0].method == .sample_aes
 		assert playlist.session_key[0].keyformat == 'example_format'
 		assert playlist.session_key[1].uri == 'example_key2'

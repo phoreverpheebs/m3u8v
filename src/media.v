@@ -4,10 +4,11 @@ import math
 import strconv
 import time
 
+// `MediaPlaylist` is the media playlist type containing various segments
 pub struct MediaPlaylist {
 pub mut:
-	segments               []MediaSegment
-	media_type             MediaType
+	segments               []MediaSegment 	// segments
+	media_type             MediaType		// VOD or EVENT
 	media_sequence         u64
 	discontinuity_sequence u64
 	//
@@ -34,12 +35,48 @@ mut:
 	count    u32
 }
 
-[direct_array_access]
+// `new_media_playlist` creates a new media playlist
 pub fn new_media_playlist(capacity u32) MediaPlaylist {
 	mut playlist := MediaPlaylist{
 		capacity: capacity
 	}
 	playlist.segments = []MediaSegment{len: int(capacity)}
+	return playlist
+}
+
+// `decode_media_playlist` decodes data into a media playlist
+// useful for when you know a playlist is of type media
+// `strict` will return syntax errors if true
+// capacity is the media playlists capacity, 1024 is default if capacity is less than 1
+pub fn decode_media_playlist(data string, capacity u32, strict bool) ?MediaPlaylist {
+	mut cap := capacity
+	if cap <= 0 {
+		cap = 1024
+	}
+	mut state := DecodeState{}
+	mut wv := Widevine{}
+	mut playlist := new_media_playlist(cap)
+
+	for _, line in data.split_into_lines() {
+		if line.len < 1 || line == '\r' {
+			continue
+		}
+
+		decode_line_of_media(mut playlist, mut wv, mut state, line, strict) or {
+			if strict {
+				return err
+			}
+		}
+	}
+
+	if state.widevine {
+		playlist.widevine = wv
+	}
+
+	if strict && !state.m3u {
+		return error('m3u8: Unable to find #EXTM3U tag')
+	}
+
 	return playlist
 }
 
@@ -549,6 +586,8 @@ fn decode_line_of_media(mut playlist MediaPlaylist, mut wv Widevine, mut state D
 	return
 }
 
+// `encode` returns playlist encoded as an m3u8 playlist file
+[direct_array_access]
 pub fn (playlist MediaPlaylist) encode() string {
 	mut version := playlist.version
 	mut buffer := ''
@@ -756,6 +795,7 @@ pub fn (playlist MediaPlaylist) encode() string {
 	return '#EXTM3U\n#EXT-X-VERSION:$version\n$buffer'
 }
 
+// `append` creates a segment and appends it to the end of `playlist`
 pub fn (mut playlist MediaPlaylist) append(title string, uri string, duration f64) ? {
 	mut segment := MediaSegment{}
 	segment.title = title
@@ -764,6 +804,7 @@ pub fn (mut playlist MediaPlaylist) append(title string, uri string, duration f6
 	return playlist.append_segment(mut segment)
 }
 
+// `append_segment` appends `segment` to `playlist`
 pub fn (mut playlist MediaPlaylist) append_segment(mut segment MediaSegment) ? {
 	if playlist.head == playlist.tail && playlist.count > 0 {
 		return error('Playlist is full')
@@ -785,6 +826,7 @@ pub fn (mut playlist MediaPlaylist) append_segment(mut segment MediaSegment) ? {
 	return
 }
 
+// `set_key` sets the EXT-X-KEY of `playlist`
 pub fn (mut playlist MediaPlaylist) set_key(method KeyMethod, uri string, iv string, keyformat string, keyformatversions string) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -798,6 +840,7 @@ pub fn (mut playlist MediaPlaylist) set_key(method KeyMethod, uri string, iv str
 	return
 }
 
+// `set_map` sets the EXT-X-MAP of `playlist`
 pub fn (mut playlist MediaPlaylist) set_map(uri string, limit i64, offset i64) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -819,7 +862,7 @@ pub fn (mut playlist MediaPlaylist) set_range(limit i64, offset i64) ? {
 	return
 }
 
-// set the SCTE cue format for the current segment
+// `set_scte35` sets the SCTE cue format for the current segment
 pub fn (mut playlist MediaPlaylist) set_scte35(scte35 &SCTE) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -828,6 +871,7 @@ pub fn (mut playlist MediaPlaylist) set_scte35(scte35 &SCTE) ? {
 	return
 }
 
+// `set_bitrate` sets the bitrate for the current segment
 pub fn (mut playlist MediaPlaylist) set_bitrate(bitrate i64) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -835,6 +879,7 @@ pub fn (mut playlist MediaPlaylist) set_bitrate(bitrate i64) ? {
 	playlist.segments[playlist.last_segment()].bitrate = bitrate
 }
 
+// `set_discontinuity` sets the discontinuity to true for the current segment
 pub fn (mut playlist MediaPlaylist) set_discontinuity() ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -843,6 +888,7 @@ pub fn (mut playlist MediaPlaylist) set_discontinuity() ? {
 	return
 }
 
+// `set_program_date_time` sets  the program_date_time value of the current segment
 pub fn (mut playlist MediaPlaylist) set_program_date_time(value time.Time) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -851,11 +897,12 @@ pub fn (mut playlist MediaPlaylist) set_program_date_time(value time.Time) ? {
 	return
 }
 
-// sets custom media playlist tag
+// `set_custom_tag` sets custom media playlist tag
 pub fn (mut playlist MediaPlaylist) set_custom_tag(tag CustomTag) {
 	playlist.custom[tag.tag_name()] = tag
 }
 
+// `set_custom_segment_tag` sets a custom tag for the current segment
 pub fn (playlist &MediaPlaylist) set_custom_segment_tag(tag CustomTag) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -867,6 +914,7 @@ pub fn (playlist &MediaPlaylist) set_custom_segment_tag(tag CustomTag) ? {
 	return
 }
 
+// `remove` removes the last segment in `playlist`
 pub fn (mut playlist MediaPlaylist) remove() ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -882,18 +930,22 @@ pub fn (mut playlist MediaPlaylist) remove() ? {
 	return
 }
 
+// `close` closes the playlist (EXT-X-ENDLIST)
 pub fn (mut playlist MediaPlaylist) close() {
 	playlist.closed = true
 }
 
+// `count` returns the amount of segments in playlist
 pub fn (playlist &MediaPlaylist) count() u32 {
 	return playlist.count
 }
 
+// `version` returns the protocol version of `playlist`
 pub fn (playlist &MediaPlaylist) version() u8 {
 	return playlist.version
 }
 
+// `set_version` sets the protocol version of `playlist` to `new_version`
 pub fn (mut playlist MediaPlaylist) set_version(new_version u8) {
 	playlist.version = new_version
 }
@@ -905,6 +957,7 @@ fn (playlist &MediaPlaylist) last_segment() u32 {
 	return playlist.tail - 1
 }
 
+// `slide` removes a segment from the head of the segment slice and appends a new segment
 pub fn (mut playlist MediaPlaylist) slide(title string, uri string, duration f64) {
 	// ignore errors in slide
 	if !playlist.closed {
@@ -912,8 +965,4 @@ pub fn (mut playlist MediaPlaylist) slide(title string, uri string, duration f64
 	}
 
 	playlist.append(title, uri, duration) or {}
-} 
-
-// pub fn (playlist MediaPlaylist) encode() string {
-// 	return ''
-// }
+}

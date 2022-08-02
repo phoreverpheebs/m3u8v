@@ -1,8 +1,8 @@
 module m3u8
 
-// WIP - FIX ENUM TYPES
 import strconv
 
+// `MasterPlaylist` is the master playlist type
 pub struct MasterPlaylist {
 pub mut:
 	session_data []SessionData
@@ -15,9 +15,35 @@ mut:
 	independent_segments bool
 }
 
-[direct_array_access]
-pub fn new_master_playlist() &MasterPlaylist {
-	return &MasterPlaylist{}
+// `new_master_playlist` creates a new master playlist
+pub fn new_master_playlist() MasterPlaylist {
+	return MasterPlaylist{}
+}
+
+// `decode_master_playlist` decodes data into a master playlist
+// useful for when you know a playlist is of type master
+// `strict` will return syntax errors if true
+pub fn decode_master_playlist(data string, strict bool) ?MasterPlaylist {
+	mut state := DecodeState{}
+	mut playlist := new_master_playlist()
+
+	for _, line in data.split_into_lines() {
+		if line.len < 1 || line == '\r' {
+			continue
+		}
+
+		decode_line_of_master(mut playlist, mut state, line, strict) or {
+			if strict {
+				return err
+			}
+		}
+	}
+
+	if strict && !state.m3u {
+		return error('m3u8: Unable to find #EXTM3U tag')
+	}
+
+	return playlist
 }
 
 [direct_array_access]
@@ -343,6 +369,7 @@ fn decode_line_of_master(mut playlist MasterPlaylist, mut state DecodeState, raw
 	return
 }
 
+// `encode` returns playlist encoded as an m3u8 playlist file
 [direct_array_access]
 pub fn (playlist MasterPlaylist) encode() string {
 	mut version := playlist.version
@@ -439,7 +466,7 @@ pub fn (playlist MasterPlaylist) encode() string {
 			iframe_string += ',CODECS="$variant.codecs"'
 		}
 		if variant.resolution.width != 0 && variant.resolution.height != 0 {
-			iframe_string += ',RESOLUTION=$variant.resolution.as_str()'
+			iframe_string += ',RESOLUTION=$variant.resolution.str()'
 		}
 		if variant.video != '' {
 			iframe_string += ',VIDEO="$variant.video"'
@@ -522,10 +549,12 @@ pub fn (playlist MasterPlaylist) encode() string {
 	return '#EXTM3U\n#EXT-X-VERSION:$version\n$buffer'
 }
 
+// `set_independent_segments` sets `EXT-X-INDEPENDENT-SEGMENTS`
 pub fn (mut playlist MasterPlaylist) set_independent_segments(b bool) {
 	playlist.independent_segments = b
 }
 
+// `version` returns the protocol version of `playlist`
 pub fn (playlist &MasterPlaylist) version() u8 {
 	return playlist.version
 }
