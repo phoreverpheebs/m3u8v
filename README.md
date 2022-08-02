@@ -13,14 +13,9 @@ V library for decoding and encoding/generating m3u8 playlist files widely used i
 
 `git clone https://github.com/phoreverpheebs/v-m3u8.git ~/.vmodules/phoreverpheebs/m3u8`
 
-<h2>Examples</h2>
-
-```v
-data := os.read_file
-```
-
 <h2>Plans</h2>
 
+- [ ] Add examples
 - [ ] Custom Tags
 - [ ] Custom Decoder
 - [ ] Protocol version 8
