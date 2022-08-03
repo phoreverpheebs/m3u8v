@@ -21,6 +21,10 @@ via git:
 
 <h2>Examples</h2>
 
+vhlsdownloader: https://github.com/phoreverpheebs/vhlsdownloader
+
+
+
 ```v
 import phoreverpheebs.m3u8
 
@@ -39,7 +43,7 @@ fn main() {
 }
 ```
 
-<h2>Plans</h2>
+<h2>TODO</h2>
 
 - [ ] Add examples
 - [x] Documentation
