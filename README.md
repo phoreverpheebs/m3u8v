@@ -1,4 +1,4 @@
-<h1>v-m3u8</h1>
+<h1>m3u8v</h1>
 
 V library for decoding and encoding/generating m3u8 playlist files widely used in the HTTP Live Streaming protocol.
 
@@ -17,7 +17,7 @@ via vpm:
 
 via git:
 
-`git clone https://github.com/phoreverpheebs/v-m3u8.git ~/.vmodules/phoreverpheebs/m3u8`
+`git clone https://github.com/phoreverpheebs/m3u8v.git ~/.vmodules/phoreverpheebs/m3u8`
 
 <h2>Examples</h2>
 
