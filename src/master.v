@@ -352,6 +352,7 @@ fn decode_line_of_master(mut playlist MasterPlaylist, mut state DecodeState, raw
 					'METHOD' { state.x_key.method = match v {
 						'AES-128' { .aes_128 }
 						'SAMPLE-AES' { .sample_aes }
+						'SAMPLE-AES-CTR' { .sample_aes_ctr }
 						else { .@none }
 					} }
 					'URI' { state.x_key.uri = v }

@@ -23,7 +23,7 @@ pub mut:
 	//
 	widevine Widevine
 	map      Map
-	key      Key
+	keys     []Key
 	//
 	args   string
 	custom map[string]CustomTag
@@ -120,18 +120,22 @@ fn decode_line_of_media(mut playlist MediaPlaylist, mut wv Widevine, mut state D
 		}
 		!line.starts_with('#') {
 			if state.inf {
+				state.inf = false
 				playlist.append(state.title, line, state.duration) or {
 					if err == error('Playlist is full') {
 						playlist.segments << []MediaSegment{len: int(playlist.count())}
 						playlist.capacity = u32(playlist.segments.len)
 						playlist.tail = playlist.count
 						playlist.append(state.title, line, state.duration) or {
-							return error('m3u8: Unable to append segment to playlist: $err')
+							if strict {
+								return error('m3u8: Unable to append segment to playlist: $err')
+							}
 						}
 					} else {
-						return error('m3u8: Unable to append segment to playlist: $err')
+						if strict {
+							return error('m3u8: Unable to append segment to playlist: $err')
+						}
 					}
-					state.inf = false
 				}
 			}
 			if state.range {
@@ -165,15 +169,6 @@ fn decode_line_of_media(mut playlist MediaPlaylist, mut wv Widevine, mut state D
 						return error('m3u8: Unable to set program datetime: $err')
 					}
 				}
-			}
-			if state.key {
-				playlist.segments[playlist.last_segment()].key = Key{
-					...state.x_key
-				}
-				if isnil(playlist.key) {
-					playlist.key = state.x_key
-				}
-				state.key = false
 			}
 			if state.map {
 				playlist.segments[playlist.last_segment()].map = Map{
@@ -293,6 +288,7 @@ fn decode_line_of_media(mut playlist MediaPlaylist, mut wv Widevine, mut state D
 					'METHOD' { state.x_key.method = match v {
 						'AES-128' { .aes_128 }
 						'SAMPLE-AES' { .sample_aes }
+						'SAMPLE-AES-CTR' { .sample_aes_ctr }
 						else { .@none }
 					} }
 					'URI' { state.x_key.uri = v }
@@ -302,7 +298,7 @@ fn decode_line_of_media(mut playlist MediaPlaylist, mut wv Widevine, mut state D
 					else {}
 				}
 			}
-			state.key = true
+			playlist.keys << state.x_key
 		}
 		line.starts_with('#EXT-X-MAP:') {
 			state.list_type = .media
@@ -592,23 +588,25 @@ pub fn (playlist MediaPlaylist) encode() string {
 	mut version := playlist.version
 	mut buffer := ''
 
-	if playlist.key != Key{} {
-		buffer += '#EXT-X-KEY:METHOD=${playlist.key.method.str()}'
-		if playlist.key.method != .@none {
-			buffer += ',URI="${playlist.key.uri}"'
-			if playlist.key.iv != '' {
-				buffer += ',IV=${playlist.key.iv}'
+	if playlist.keys.len > 0 {
+		for _, key in playlist.keys {
+			buffer += '#EXT-X-KEY:METHOD=${key.method.str()}'
+			if key.method != .@none {
+				buffer += ',URI="${key.uri}"'
+				if key.iv != '' {
+					buffer += ',IV=${key.iv}'
+				}
+				if key.keyformat != '' {
+					version = set_newer_version(version, 5)
+					buffer += ',KEYFORMAT="${key.keyformat}"'
+				}
+				if key.keyformatversions != '' {
+					version =  set_newer_version(version, 5)
+					buffer += ',KEYFORMATVERSIONS="${key.keyformatversions}"'
+				}
 			}
-			if playlist.key.keyformat != '' {
-				version = set_newer_version(version, 5)
-				buffer += ',KEYFORMAT="${playlist.key.keyformat}"'
-			}
-			if playlist.key.keyformatversions != '' {
-				version =  set_newer_version(version, 5)
-				buffer += ',KEYFORMATVERSIONS="${playlist.key.keyformatversions}"'
-			}
+			buffer += '\n'
 		}
-		buffer += '\n'
 	}
 
 	if playlist.map != Map{} {
@@ -725,7 +723,7 @@ pub fn (playlist MediaPlaylist) encode() string {
 			}
 		}
 
-		if segment.key != Key{} && playlist.key != segment.key {
+		if segment.key != Key{} && !playlist.keys.contains(segment.key)  {
 			buffer += '#EXT-X-KEY:METHOD=${segment.key.method.str()}'
 			if segment.key.method != .@none {
 				buffer += ',URI="${segment.key.uri}"'
@@ -826,7 +824,7 @@ pub fn (mut playlist MediaPlaylist) append_segment(mut segment MediaSegment) ? {
 	return
 }
 
-// `set_key` sets the EXT-X-KEY of `playlist`
+// `set_key` sets the EXT-X-KEY of the last segment in `playlist`
 pub fn (mut playlist MediaPlaylist) set_key(method KeyMethod, uri string, iv string, keyformat string, keyformatversions string) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')
@@ -840,7 +838,7 @@ pub fn (mut playlist MediaPlaylist) set_key(method KeyMethod, uri string, iv str
 	return
 }
 
-// `set_map` sets the EXT-X-MAP of `playlist`
+// `set_map` sets the EXT-X-MAP of the last segment in `playlist`
 pub fn (mut playlist MediaPlaylist) set_map(uri string, limit i64, offset i64) ? {
 	if playlist.count == 0 {
 		return error('Playlist is empty')

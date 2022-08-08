@@ -332,3 +332,60 @@ t05.ts
 t06.ts
 '
 }
+
+fn test_multi_key_media_decode() ? {
+	playlist := decode_media_playlist(multi_key_media, 1024, true) or { panic(err) }
+
+	assert playlist.version() == 5
+	assert playlist.target_duration == f64(9)
+	assert playlist.media_type == .vod
+	assert playlist.segments[0].program_date_time.ddmmy() == '03.01.2020'
+	assert playlist.iframe == true
+	assert playlist.keys[0] == Key{
+		method: .sample_aes_ctr
+		keyformat: 'COMPETINGDRMSYSTEM'
+		keyformatversions: '1'
+		uri: 'MYKEYAAAAAAAa'
+	}
+	assert playlist.keys[1] == Key{
+		method: .aes_128
+		keyformat: 'ADRMSYSTEM'
+		keyformatversions: '1'
+		uri: 'PROBABLY_DRM_STUFF'
+	}
+	assert playlist.count() == 5
+	assert playlist.media_sequence == 0
+	assert playlist.segments[playlist.count()-1].map.uri == '01_004map.mp4'
+	assert playlist.segments[2].duration == 2.002
+	assert playlist.segments[0].duration == 1.96
+}
+
+const multi_key_media = '#EXTM3U
+#EXT-X-VERSION:5
+#EXT-X-TARGETDURATION:9
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PROGRAM-DATE-TIME:2020-01-03T00:00:00.000Z
+#EXT-X-I-FRAMES-ONLY
+#EXT-X-KEY:METHOD=SAMPLE-AES-CTR,KEYFORMAT="COMPETINGDRMSYSTEM",KEYFORMATVERSIONS="1",URI="MYKEYAAAAAAAa"
+#EXT-X-KEY:METHOD=AES-128,KEYFORMAT="ADRMSYSTEM",KEYFORMATVERSIONS="1",URI="PROBABLY_DRM_STUFF"
+#EXT-X-MAP:URI="map.mp4"
+#EXTINF:1.96,
+#EXT-X-BYTERANGE:1725@0
+00_000.mp4
+#EXTINF:2.002,
+#EXT-X-BYTERANGE:168339@422374
+00_001.mp4
+#EXTINF:2.002,
+#EXT-X-BYTERANGE:168560@1161235
+00_002.mp4
+#EXTINF:2.002,
+#EXT-X-BYTERANGE:144567@2247603
+00_003.mp4
+#EXTINF:0.041708333,
+#EXT-X-DISCONTINUITY
+#EXT-X-MAP:URI="01_004map.mp4"
+#EXTINF:2.002,
+#EXT-X-BYTERANGE:192335@0
+01_004.mp4
+#EXT-X-ENDLIST'

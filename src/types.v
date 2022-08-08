@@ -63,6 +63,7 @@ pub enum KeyMethod {
 	@none
 	aes_128
 	sample_aes
+	sample_aes_ctr
 }
 
 pub fn (m KeyMethod) str() string {
@@ -70,6 +71,7 @@ pub fn (m KeyMethod) str() string {
 		.@none { 'NONE' }
 		.aes_128 { 'AES-128' }
 		.sample_aes { 'SAMPLE-AES' }
+		.sample_aes_ctr { 'SAMPLE-AES-CTR' }
 	}
 }
 
