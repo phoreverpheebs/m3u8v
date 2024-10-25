@@ -60,7 +60,7 @@ This repository was inspired by grafov's implementation of the protocol in Go ht
 * https://github.com/grafov/m3u8 in Golang
 * https://github.com/globocom/m3u8 in Python
 * https://github.com/zencoder/m3uzi in Ruby
-* https://github.com/Jeanvf/M3U8Paser in Objective C
+* https://github.com/Jeanvf/M3U8Parser in Objective C
 * https://github.com/tedconf/node-m3u8 in Javascript
 * http://sourceforge.net/projects/m3u8parser/ in Java
 * https://github.com/karlll/erlm3u8 in Erlang
